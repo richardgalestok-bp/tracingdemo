@@ -1,5 +1,7 @@
 package com.example.kafka;
 
+import static com.example.Constants.EXAMPLE_TOPIC_NAME;
+import static com.example.Constants.JOBS;
 import static java.time.Duration.ofMillis;
 import static reactor.core.publisher.Mono.delay;
 
@@ -20,7 +22,7 @@ import reactor.core.publisher.Mono;
 public class RegularConsumer {
   private final RegularHandler handler;
 
-  @Topic("example-topic-name")
+  @Topic(EXAMPLE_TOPIC_NAME)
   public /* this is auto-traced; */
   void receive(@KafkaKey final String key, @MessageBody final String val,
                final long offset, final Acknowledgement ack) {
@@ -31,12 +33,12 @@ public class RegularConsumer {
       .block();
   }
 
-  @Trace(operationName = "jobs", resourceName = "::success")
+  @Trace(operationName = JOBS, resourceName = "::success")
   Mono<String> handle(final String val) {
     return handler.handle(val);
   }
 
-  @Trace(operationName = "jobs", resourceName = "::error")
+  @Trace(operationName = JOBS, resourceName = "::error")
   Mono<String> handleError(final String key, final String val, final Throwable t) {
     return handler.handleProcessingError(key, val, t);
   }

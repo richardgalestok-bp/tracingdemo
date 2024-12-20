@@ -12,6 +12,8 @@ cp build/libs/tracingdemo-*-all.jar tracingdemo.jar
 export DD_AGENT_HOST=localhost
 export DD_APM_ENABLED=true
 export DD_ENV=local
+export DD_SERVICE=tracing-demo-service
+export DD_VERSION=0.0.1
 
 # Run the application with the specified JVM options
 java \
@@ -20,6 +22,5 @@ java \
   -XX:MaxRAMPercentage=75.0 \
   -javaagent:local/dd-java-agent.jar \
   -Ddd.profiling.enabled=false \
-  -Ddd.trace.annotation.async=true \
   -XX:FlightRecorderOptions=stackdepth=256 \
   -jar tracingdemo.jar

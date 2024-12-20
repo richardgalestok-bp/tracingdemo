@@ -1,6 +1,49 @@
 # based on https://github.com/confluentinc/examples/blob/5.1.1-post/microservices-orders/docker-compose.yml
 version: '3.5'
 services:
+  zookeeper:
+    container_name: tracingdemo_zookeeper
+    image: confluentinc/cp-zookeeper:7.2.2
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  kafka:
+    container_name: tracingdemo_kafka
+    image: confluentinc/cp-kafka:7.2.2
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    restart: on-failure
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://tracingdemo_kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: cub kafka-ready -b kafka:29092 1 20
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  kafka-setup:
+    container_name: tracingdemo_kafka_setup
+    image: confluentinc/cp-kafka:6.2.0
+    hostname: kafka-setup
+    command: "bash -c 'kafka-topics --create --if-not-exists --zookeeper zookeeper:2181 --partitions 1 --replication-factor 1 --topic example-topic-name'"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      # The following settings are listed here only to satisfy the image's requirements.
+      # We override the image's `command` anyways, hence this container will not start a broker.
+      KAFKA_BROKER_ID: ignored
+      KAFKA_ZOOKEEPER_CONNECT: ignored
   db:
     image: "amazon/dynamodb-local:1.20.0"
     container_name: tracingdemo_db

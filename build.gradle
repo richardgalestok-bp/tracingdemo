@@ -1,0 +1,65 @@
+plugins {
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("io.micronaut.application") version "$micronautVersion"
+    id("io.micronaut.aot") version "$micronautVersion"
+
+}
+
+version = "0.1"
+group = "com.example"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
+
+    implementation("io.micronaut:micronaut-runtime")
+    implementation("io.micronaut.reactor:micronaut-reactor")
+    implementation("io.micronaut.kafka:micronaut-kafka")
+    implementation("io.micronaut:micronaut-jackson-databind")
+    implementation("io.micronaut.micrometer:micronaut-micrometer-registry-statsd")
+
+    implementation("com.datadoghq:java-dogstatsd-client:$datadogStatsDVersion")
+    implementation("com.datadoghq:dd-trace-api:$datadogTraceVersion")
+    implementation("com.datadoghq:dd-trace-ot:$datadogTraceVersion")
+
+    implementation("software.amazon.awssdk:sqs:$awsSdkVersion")
+    implementation("software.amazon.awssdk:dynamodb:$awsSdkVersion")
+    implementation("software.amazon.awssdk:dynamodb-enhanced:$awsSdkVersion")
+    implementation("software.amazon.awssdk:sts:$awsSdkVersion")
+    implementation("software.amazon.awssdk:netty-nio-client:$awsSdkVersion")
+    implementation("software.amazon.awssdk:apache-client:$awsSdkVersion")
+
+    compileOnly("org.projectlombok:lombok:$lombokVersion")
+}
+
+
+application {
+    mainClass = "com.example.Application"
+}
+java {
+    sourceCompatibility = JavaVersion.toVersion("21")
+    targetCompatibility = JavaVersion.toVersion("21")
+}
+
+micronaut {
+    runtime("netty")
+    testRuntime("junit5")
+    processing {
+        incremental(true)
+        annotations("com.example.*")
+    }
+    aot {
+        // https://micronaut-projects.github.io/micronaut-aot/latest/guide/
+        optimizeServiceLoading = true
+        convertYamlToJava = true
+        precomputeOperations = true
+        cacheEnvironment = true
+        optimizeClassLoading = true
+        deduceEnvironment = true
+    }
+}
+
+

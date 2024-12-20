@@ -1,0 +1,73 @@
+# based on https://github.com/confluentinc/examples/blob/5.1.1-post/microservices-orders/docker-compose.yml
+version: '3.5'
+services:
+  db:
+    image: "amazon/dynamodb-local:1.20.0"
+    container_name: tracingdemo_db
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./database/local/dynamodb:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    networks:
+      - default
+
+  db-setup:
+    image: garland/aws-cli-docker:1.16.140
+    platform: linux/amd64
+    container_name: tracingdemo_db_setup
+    command: >
+      aws dynamodb create-table
+      --table-name tracing_demo
+      --attribute-definitions AttributeName=PK,AttributeType=S AttributeName=SK,AttributeType=S
+      --key-schema AttributeName=PK,KeyType=HASH AttributeName=SK,KeyType=RANGE
+      --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+      --endpoint-url http://db:8000
+    depends_on:
+      - db-admin
+    links:
+      - db
+    environment:
+      # must have env. vars set otherwise we get
+      # "Unable to locate credentials, you can configure them by running aws configure".
+      - AWS_ACCESS_KEY_ID=does-not-matter
+      - AWS_SECRET_ACCESS_KEY=does-not-matter
+      - AWS_DEFAULT_REGION=eu-west-1
+    networks:
+      - default
+
+  db-admin:
+    image: "aaronshaf/dynamodb-admin:4.4.0"
+    container_name: tracingdemo_db_admin
+    depends_on:
+      - db
+    ports:
+      - "8001:8001"
+    environment:
+      DYNAMO_ENDPOINT: "http://db:8000"
+      AWS_REGION: "eu-west-1"
+    networks:
+      - default
+
+  # Uncomment if you plan to test tracing & profiling from local environment
+  datadog-agent:
+    image: datadog/agent:latest
+    environment:
+      DD_API_KEY: <api_key>
+      DD_SITE: datadoghq.eu
+      DD_APM_ENABLED: true
+      DD_ENV: local
+      DD_APM_NON_LOCAL_TRAFFIC: true
+    ports:
+      - "8126:8126"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+networks:
+  default:
+    name: tracingdemo_service_network
+
+volumes:
+  redis_data:
+    driver: local
